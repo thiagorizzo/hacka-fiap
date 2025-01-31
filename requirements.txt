@@ -1,0 +1,6 @@
+opencv-python
+ultralytics
+pydantic
+pydantic-settings==2.0.3
+injector
+PySide6
