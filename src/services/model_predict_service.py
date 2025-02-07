@@ -10,10 +10,10 @@ class ModelPredictService:
 
     def predict(self, frame, ):
        
-        if torch.cuda.is_available():
-            print(f"CUDA está disponível! Usando GPU: {torch.cuda.get_device_name(0)}")
-        else:
-            print("CUDA não está disponível.")   
+        # if torch.cuda.is_available():
+        #     print(f"CUDA está disponível! Usando GPU: {torch.cuda.get_device_name(0)}")
+        # else:
+        #     print("CUDA não está disponível.")   
         # Run inference on 'bus.jpg' with arguments
         # results = self.model(frame, mgsz=320, conf=0.17, half=True, iou=0.7, device=0)
         #1280 640

@@ -1,4 +1,5 @@
 import sys
+import re
 from PySide6.QtWidgets import (
     QMainWindow,
     QWidget,
@@ -6,6 +7,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QPushButton,
     QTabWidget,
+    QListView,
     QFileDialog,
     QLineEdit,
     QMessageBox,
@@ -13,7 +15,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QProgressBar,
 )
-from PySide6.QtCore import Qt, QThread, Signal, QSettings
+from PySide6.QtCore import Qt, QThread, Signal, QSettings,QStringListModel
 from PySide6.QtGui import QFont, QImage, QPixmap
 from injector import inject
 from services.detection_service import DetectionService
@@ -29,6 +31,7 @@ class VideoLoaderThread(QThread):
     def __init__(self, video_path):
         super().__init__()
         self.video_path = video_path
+        
 
     def run(self):
         # Simula o carregamento do vídeo
@@ -36,6 +39,7 @@ class VideoLoaderThread(QThread):
             self.msleep(50)  # Simula um atraso no carregamento
             self.loading_progress_updated.emit(i)  # Atualiza a barra de progresso
         self.loading_finished.emit(self.video_path)  # Emite o sinal de conclusão
+       
 
 
 # Thread para processar o vídeo
@@ -47,6 +51,7 @@ class VideoProcessorThread(QThread):
         super().__init__()
         self.video_path = video_path
         self.detection_service = detection_service
+ 
 
     def run(self):
         # Processa o vídeo e atualiza o progresso
@@ -66,6 +71,8 @@ class AppWindow(QMainWindow):
         self.detection_service = detection_service
         self.email_service = email_service
         self.is_camera_started = False
+        self.is_play = False
+        self.path_video = ''
 
         # Configurações iniciais da janela
         self.setWindowTitle("FIAP VisionGuard")
@@ -103,7 +110,9 @@ class AppWindow(QMainWindow):
         self.email_input = QLineEdit()
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
-        self.recipient_input = QLineEdit()
+        self.recipient_input = QLineEdit(self)
+        self.recipient_input.setPlaceholderText("Digite o Email de Destinatário e pressione Enter...")
+       
 
         self.password_label = QLabel(
             '<a href="https://myaccount.google.com/apppasswords">Senha de App (Gmail) 🔗</a>'
@@ -112,22 +121,32 @@ class AppWindow(QMainWindow):
 
         form_layout.addRow("E-mail do remetente:", self.email_input)
         form_layout.addRow(self.password_label, self.password_input)
-        form_layout.addRow("E-mail do destinatário:", self.recipient_input)
 
         # Caixa de seleção "Lembrar"
         self.remember_checkbox = QCheckBox("Lembrar e-mail e senha")
         form_layout.addRow(self.remember_checkbox)
+        form_layout.addRow("Add E-mail dos destinatários:", self.recipient_input)
+
+        self.list_view = QListView(self)
+        self.model = QStringListModel()  # Modelo para armazenar a lista de dados
+        self.list_view.setModel(self.model)  # Atribui o modelo ao QListView
+        form_layout.addRow("Destinatários:\nClique 2x para Remover", self.list_view)
+
 
         email_layout.addLayout(form_layout)
 
         # Botão de validação
         self.validate_button = QPushButton("Validar e Continuar")
         self.validate_button.setFont(QFont("Tahoma", 11))
-        self.validate_button.clicked.connect(self.__validate_email_settings)
+        self.validate_button.clicked.connect(self.__validate_email_settings, )
         email_layout.addWidget(self.validate_button)
 
         self.layout.addWidget(self.email_config_widget)
 
+        #add list
+        self.recipient_input.returnPressed.connect(self.add_to_list)
+        #remove list
+        self.list_view.doubleClicked.connect(self.remove_from_list)
         # Carrega os dados salvos, se existirem
         self.__load_saved_settings()
 
@@ -135,23 +154,29 @@ class AppWindow(QMainWindow):
     def __load_saved_settings(self):
         email = self.settings.value("email", "")
         password = self.settings.value("password", "")
-        recipient = self.settings.value("recipient", "")
+        #recipient = self.settings.value("recipient", "")
         remember = self.settings.value("remember", False, type=bool)
+        emails = self.settings.value("emails", [])
+        self.model.setStringList(emails)  # Preenche o modelo com os e-mails salvos
+
 
         # Preenche os campos com os dados salvos
         self.email_input.setText(email)
         self.password_input.setText(password)
-        self.recipient_input.setText(recipient)
+        #self.recipient_input.setText(recipient)
         self.remember_checkbox.setChecked(remember)
 
     # Valida as configurações de e-mail
     def __validate_email_settings(self):
         sender_email = self.email_input.text().strip()
         app_password = self.password_input.text().strip()
-        recipient_email = self.recipient_input.text().strip()
+        #recipient_email = self.recipient_input.text().strip()
 
-        if not sender_email or not app_password or not recipient_email:
-            QMessageBox.warning(self, "Erro", "Todos os campos devem ser preenchidos!")
+        if not sender_email or not app_password :
+            QMessageBox.warning(self, "Configuração", "Todos os campos devem ser preenchidos!")
+            return
+        elif len(self.model.stringList()) == 0:
+            QMessageBox.warning(self, "Destinatários", "Precisa de ao menos 1 E-mail como destinatário")
             return
 
         (result, error_message) = self.email_service.validate_email(sender_email, app_password)
@@ -163,22 +188,65 @@ class AppWindow(QMainWindow):
         if self.remember_checkbox.isChecked():
             self.settings.setValue("email", sender_email)
             self.settings.setValue("password", app_password)
-            self.settings.setValue("recipient", recipient_email)
+            #self.settings.setValue("recipient", recipient_email)
             self.settings.setValue("remember", True)
         else:
             # Remove os dados salvos se a caixa "Lembrar" não estiver marcada
             self.settings.remove("email")
             self.settings.remove("password")
-            self.settings.remove("recipient")
+            #self.settings.remove("recipient")
             self.settings.remove("remember")
 
         self.email_config_widget.setVisible(False)
         self.tabs.setVisible(True)
 
+        email_list = self.model.stringList()
+
+        # Converte a lista em uma string separada por ";"
+       
         self.email_service.email_sender = sender_email
-        self.email_service.email_receiver = recipient_email
+        self.email_service.email_receiver = ", ".join(email_list)
         self.email_service.email_password = app_password
 
+    def add_to_list(self):
+
+        email = self.recipient_input.text()
+        if not self.is_valid_email(email):
+            QMessageBox.warning(self, "E-mail inválido", "Por favor, digite um e-mail válido.")
+        elif self.is_duplicate(email):
+            QMessageBox.warning(self, "E-mail Duplicado","Este e-mail já está na lista.")
+        else:
+            current_list = self.model.stringList()
+            current_list.append(email)
+            self.model.setStringList(current_list)
+            self.save_emails()  # Salva os e-mails na configuração
+            self.recipient_input.clear()
+           
+     
+    def is_valid_email(self, email):
+        """Valida se o texto é um e-mail válido"""
+        email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        return re.match(email_regex, email) is not None
+    def is_duplicate(self, email):
+        """Verifica se o e-mail já está na lista"""
+        current_list = self.model.stringList()
+        return email in current_list
+
+    def remove_from_list(self, index):
+        """Remove o e-mail da lista ao clicar duplo"""
+        row = index.row()
+        current_list = self.model.stringList()
+        current_list.pop(row)  # Remove o item na posição
+        self.model.setStringList(current_list)  # Atualiza a lista
+        self.save_emails()  # Salva os e-mails após remoção
+
+    def save_emails(self):
+        """Salva a lista de e-mails usando QSettings"""
+        emails = self.model.stringList()
+        self.settings.setValue("emails", emails)  # Salva a lista como valor
+
+
+        
     # Aba de imagem
     def __add_image_tab(self):
         image_tab = QWidget()
@@ -241,7 +309,19 @@ class AppWindow(QMainWindow):
             self.loading_progress_bar.setVisible(False)
             video_layout.addWidget(self.loading_progress_bar)
 
+            self.play_button = QPushButton("▶️ Play")
+            self.play_button.clicked.connect(self.__play_video)
+            self.play_button.setVisible(False)
+
+            self.pause_button = QPushButton("🔃 Reiniciar")
+            self.pause_button.clicked.connect(self.__reset_video)
+            self.pause_button.setVisible(False)
+
+            button_layout = QVBoxLayout()
+            button_layout.addWidget(self.play_button)
+            button_layout.addWidget(self.pause_button)
             # Barra de progresso para processamento do vídeo
+            video_layout.addLayout(button_layout)
             self.processing_progress_bar = QProgressBar()
             self.processing_progress_bar.setVisible(False)
             video_layout.addWidget(self.processing_progress_bar)
@@ -285,6 +365,10 @@ class AppWindow(QMainWindow):
         about_layout.addWidget(about_label)
 
         about_layout.addStretch()
+        exit_button = QPushButton("Sair")
+        exit_button.setFont(QFont("Tahoma", 12))
+        exit_button.clicked.connect(self.__quit_app)
+        about_layout.addWidget(exit_button)
 
     # Abre uma imagem
     def __open_image(self):
@@ -318,6 +402,8 @@ class AppWindow(QMainWindow):
 
     # Abre um vídeo
     def __open_video(self):
+        self.play_button.setVisible(False)
+        self.pause_button.setVisible(False)
         downloads_path = QStandardPaths.writableLocation(QStandardPaths.DownloadLocation)
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.ExistingFile)
@@ -333,9 +419,9 @@ class AppWindow(QMainWindow):
                 # Mostra a barra de progresso de carregamento
                 self.loading_progress_bar.setVisible(True)
                 self.loading_progress_bar.setValue(0)
-
                 # Cria e inicia a thread de carregamento
                 self.video_loader_thread = VideoLoaderThread(video_path)
+                self.path_video = video_path
                 self.video_loader_thread.loading_progress_updated.connect(self.__update_loading_progress)
                 self.video_loader_thread.loading_finished.connect(self.__start_video_processing)
                 self.video_loader_thread.start()
@@ -348,6 +434,9 @@ class AppWindow(QMainWindow):
     def __start_video_processing(self, video_path):
         self.loading_progress_bar.setVisible(False)
         self.processing_progress_bar.setVisible(True)
+        self.play_button.setVisible(True)
+        self.pause_button.setVisible(True)
+
         self.processing_progress_bar.setValue(0)
 
         if hasattr(self.detection_service, 'camera_frame_size'):
@@ -363,12 +452,14 @@ class AppWindow(QMainWindow):
 
         self.video_label.setVisible(True)
 
-        # Conecta os sinais do DetectionService
-        self.detection_service.video_progress_updated.connect(self.__update_processing_progress)
-        self.detection_service.frame_processed.connect(self.__update_video_frame)
 
-        # Inicia o processamento do vídeo
-        self.detection_service.detect_in_video(video_path)
+
+        # # Conecta os sinais do DetectionService
+        # self.detection_service.video_progress_updated.connect(self.__update_processing_progress)
+        # self.detection_service.frame_processed.connect(self.__update_video_frame)
+
+        # # Inicia o processamento do vídeo
+        # self.detection_service.detect_in_video(video_path)
 
     # Atualiza o progresso de processamento
     def __update_processing_progress(self, value):
@@ -400,4 +491,26 @@ class AppWindow(QMainWindow):
 
     # Fecha o aplicativo
     def __quit_app(self):
-        self.close()
+        self.email_config_widget.setVisible(True)
+        self.tabs.setVisible(False)
+        #self.close()
+
+
+    def __play_video(self):
+        if not self.is_play:
+            self.detection_service.video_progress_updated.connect(self.__update_processing_progress)
+            self.detection_service.frame_processed.connect(self.__update_video_frame)
+            self.detection_service.detect_in_video(self.path_video)  # Atualiza o vídeo a cada 30ms
+            self.is_play = True
+
+
+
+        # Conecta os sinais do DetectionService
+
+
+    def __reset_video(self):
+        self.detection_service.video_progress_updated.connect(self.__update_processing_progress)
+        self.detection_service.frame_processed.connect(self.__update_video_frame)
+        self.detection_service.detect_in_video(self.path_video)  # Atualiza o vídeo a cada 30ms
+
+        
