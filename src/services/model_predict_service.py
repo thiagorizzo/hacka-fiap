@@ -6,7 +6,7 @@ import torch
 class ModelPredictService:
 
     def __init__(self):
-        self.model = YOLO("src/resources/models/best_x_2.pt")
+        self.model = YOLO("src/resources/model/model.pt")
 
     def predict(self, frame, ):
        
