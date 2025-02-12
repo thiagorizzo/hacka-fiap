@@ -107,31 +107,16 @@ class AppWindow(QMainWindow):
         form_layout = QFormLayout()
         form_layout.setSpacing(8)
 
-        self.email_input = QLineEdit()
-        self.password_input = QLineEdit()
-        self.password_input.setEchoMode(QLineEdit.Password)
         self.recipient_input = QLineEdit(self)
         self.recipient_input.setPlaceholderText("Digite o Email de Destinatário e pressione Enter...")
        
-
-        self.password_label = QLabel(
-            '<a href="https://myaccount.google.com/apppasswords">Senha de App (Gmail) 🔗</a>'
-        )
-        self.password_label.setOpenExternalLinks(True)
-
-        form_layout.addRow("E-mail do remetente:", self.email_input)
-        form_layout.addRow(self.password_label, self.password_input)
-
         # Caixa de seleção "Lembrar"
-        self.remember_checkbox = QCheckBox("Lembrar e-mail e senha")
-        form_layout.addRow(self.remember_checkbox)
         form_layout.addRow("Add E-mail dos destinatários:", self.recipient_input)
 
         self.list_view = QListView(self)
         self.model = QStringListModel()  # Modelo para armazenar a lista de dados
         self.list_view.setModel(self.model)  # Atribui o modelo ao QListView
         form_layout.addRow("Destinatários:\nClique 2x para Remover", self.list_view)
-
 
         email_layout.addLayout(form_layout)
 
@@ -147,55 +132,13 @@ class AppWindow(QMainWindow):
         self.recipient_input.returnPressed.connect(self.add_to_list)
         #remove list
         self.list_view.doubleClicked.connect(self.remove_from_list)
-        # Carrega os dados salvos, se existirem
-        self.__load_saved_settings()
-
-    # Carrega as configurações salvas
-    def __load_saved_settings(self):
-        email = self.settings.value("email", "")
-        password = self.settings.value("password", "")
-        #recipient = self.settings.value("recipient", "")
-        remember = self.settings.value("remember", False, type=bool)
-        emails = self.settings.value("emails", [])
-        self.model.setStringList(emails)  # Preenche o modelo com os e-mails salvos
-
-
-        # Preenche os campos com os dados salvos
-        self.email_input.setText(email)
-        self.password_input.setText(password)
-        #self.recipient_input.setText(recipient)
-        self.remember_checkbox.setChecked(remember)
 
     # Valida as configurações de e-mail
     def __validate_email_settings(self):
-        sender_email = self.email_input.text().strip()
-        app_password = self.password_input.text().strip()
-        #recipient_email = self.recipient_input.text().strip()
 
-        if not sender_email or not app_password :
-            QMessageBox.warning(self, "Configuração", "Todos os campos devem ser preenchidos!")
-            return
-        elif len(self.model.stringList()) == 0:
+        if len(self.model.stringList()) == 0:
             QMessageBox.warning(self, "Destinatários", "Precisa de ao menos 1 E-mail como destinatário")
             return
-
-        (result, error_message) = self.email_service.validate_email(sender_email, app_password)
-        if not result:
-            QMessageBox.critical(self, "Erro", error_message)
-            return
-
-        # Salva os dados se a caixa "Lembrar" estiver marcada
-        if self.remember_checkbox.isChecked():
-            self.settings.setValue("email", sender_email)
-            self.settings.setValue("password", app_password)
-            #self.settings.setValue("recipient", recipient_email)
-            self.settings.setValue("remember", True)
-        else:
-            # Remove os dados salvos se a caixa "Lembrar" não estiver marcada
-            self.settings.remove("email")
-            self.settings.remove("password")
-            #self.settings.remove("recipient")
-            self.settings.remove("remember")
 
         self.email_config_widget.setVisible(False)
         self.tabs.setVisible(True)
@@ -204,9 +147,7 @@ class AppWindow(QMainWindow):
 
         # Converte a lista em uma string separada por ";"
        
-        self.email_service.email_sender = sender_email
         self.email_service.email_receiver = ", ".join(email_list)
-        self.email_service.email_password = app_password
 
     def add_to_list(self):
 
@@ -383,9 +324,6 @@ class AppWindow(QMainWindow):
             if len(file_paths) > 0:
                 image_path = file_paths[0]
                 print(f"Selecionado arquivo de imagem: {image_path}")
-
-
-
 
                 result = self.detection_service.detect_in_image(image_path)
                 # Exibe a imagem

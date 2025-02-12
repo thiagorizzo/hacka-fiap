@@ -2,7 +2,6 @@ import cv2
 from ultralytics import YOLO
 import torch
 
-
 class ModelPredictService:
 
     def __init__(self):
@@ -18,7 +17,7 @@ class ModelPredictService:
         # results = self.model(frame, mgsz=320, conf=0.17, half=True, iou=0.7, device=0)
         #1280 640
 
-        results = self.model.predict(frame, imgsz=640, conf=0.08,  device=0,  )
+        results = self.model.predict(frame, imgsz=640, conf=0.08,  device=0 if torch.cuda.is_available() else "cpu",  )
         detected_objects_frames = []
 
         for result in results:

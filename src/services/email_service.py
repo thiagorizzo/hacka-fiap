@@ -3,9 +3,12 @@ import smtplib
 from email.message import EmailMessage
 import mimetypes
 import os
+from dotenv import load_dotenv
 from PIL import Image
 import imagehash
 
+# Carrega as variáveis do arquivo .env
+load_dotenv()
 
 class EmailService:
     @inject
@@ -14,15 +17,16 @@ class EmailService:
         self.qtdeEnviada = 0
         self.qtdeTotal = 0
         self.qtdeSimilar = 0
-        self.email_sender = None
+        self.email_sender = os.getenv("SENDER_EMAIL")
         self.email_receiver = None
-        self.email_password = None
+        self.email_password = os.getenv("SENDER_PASSWORD")
         self.smtp_server = 'smtp.gmail.com'
         self.smtp_port = 587
         self.resources_images_path = 'src/resources/images'
 
     def __send_email(self, image_path: str):
         email_server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+        email_server.ehlo()
         email_server.starttls()
         email_server.login(self.email_sender, self.email_password)
 
@@ -59,7 +63,7 @@ class EmailService:
 
                 return  # Imagem é repetida, não envia o e-mail
 
-            #self.__send_email(full_image_path)
+            self.__send_email(full_image_path)
             print(f'Email enviado para {self.email_receiver} com sucesso.')
         except Exception as e:
             print(f'Erro ao enviar e-mail: {str(e)}')
