@@ -39,16 +39,16 @@ Para executar a aplicação, siga os passos abaixo:
 1. Instalar dependências
 >>"Windows"
     > cd src
-    >python -m venv .env
+    > python -m venv .env
     > .env\Scripts\activate
-    >pip install -r requirements.txt
+    > pip install -r requirements.txt
    
 
 >>"Mac"
     > cd src
-    >python -m venv .env
-    >.env/bin/activate
-    >pip install -r requirements.txt
+    > python -m venv .env
+    > source .env/bin/activate
+    > pip install -r requirements.txt
 
 
 2. Executar Aplicação:
