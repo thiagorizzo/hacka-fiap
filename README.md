@@ -27,10 +27,12 @@ O código desse repositório está dividido em duas partes:
 2. Aplicação que utiliza o modelo treinado para deteção de armas, facas e pistolas.
 
 
-**OBS:** Essa aplicação, por utilizar um modelo de detecção, pode necessitar de uma GPU para ser executada de forma performática. É possível executar somente com CPU, mas o processamento será lento
+Essa aplicação, por utilizar um modelo de detecção, necessita de uma GPU para ser executada de forma performática. É possível executar somente com CPU, mas o processamento será lento.
+
+Caso queira rodar utilizando CUDA, siga a documentação nesse [link](https://pytorch.org/get-started/locally/) para instalar o pytorch na versão correta: 
 
 
-### Como executar:
+## Como executar:
 
 Para executar a aplicação, siga os passos abaixo:
 
@@ -48,7 +50,9 @@ Ao executar a aplicação, alguns passos são necessários para configurar a apl
 
 #### Download do modelo
 
-Por conta do tamanho do arquivo, o modelo treinado não está versionado nesse repositório. A aplicação, ao ser executada, irá verificar se o modelo já foi baixado e, caso não, o modelo será baixado automaticamente a partir do google drive. **Não é necessário nenhuma ação**. 
+Por conta do tamanho do arquivo, o modelo treinado não está versionado nesse repositório. A aplicação, ao ser executada, irá verificar se o modelo já foi baixado. Caso não, o modelo será baixado automaticamente a partir do google drive. **Não é necessário nenhuma ação**. 
+
+O modelo será salvo em: `src/resources/model/model.pt
 
 Caso exista a necessidade de baixar manualmente o modelo, ele está disponível nesse [Link](https://drive.google.com/uc?id=1-eiFluZMyC33URgVPVAJSlB1_sWaUQVD) 
 
