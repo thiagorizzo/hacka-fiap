@@ -71,7 +71,7 @@ class DetectionService(QObject):
         # Configura o timer para processar o vídeo em tempo real
         self.video_timer = QTimer()
         self.video_timer.timeout.connect(lambda: self.__process_video_frame(total_frames))
-        self.video_timer.start(20)  # Ajuste o intervalo conforme necessário
+        self.video_timer.start(20)
 
     def __process_video_frame(self, total_frames):
         ret, frame = self.cap.read()

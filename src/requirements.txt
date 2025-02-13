@@ -5,8 +5,5 @@ pydantic-settings==2.0.3
 injector
 PySide6
 gdown
-google-api-python-client 
-google-auth-httplib2 
-google-auth-oauthlib
 python-dotenv
 imagehash
