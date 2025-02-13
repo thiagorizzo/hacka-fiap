@@ -133,7 +133,7 @@ class DetectionService(QObject):
         if len(detected_objects_frames) > 0:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             file_name = f"{timestamp}.jpg"
-            image_path_result = os.path.join('src/resources/images', file_name)
+            image_path_result = os.path.join('resources/images', file_name)
 
             lock = threading.Lock()
             frame_bgr = cv2.cvtColor(detected_objects_frames[0], cv2.COLOR_RGB2BGR)

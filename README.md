@@ -35,13 +35,23 @@ O código desse repositório está dividido em duas partes:
 Para executar a aplicação, siga os passos abaixo:
 
 1. Instalar dependências
+>>"Windows"
+    > cd src
+    >python -m venv .env
+    > .env\Scripts\activate
+    >pip install -r requirements.txt
+   
 
-> pip install -r requirements.txt
+>>"Mac"
+    > cd src
+    >python -m venv .env
+    >.env/bin/activate
+    >pip install -r requirements.txt
 
 
 2. Executar Aplicação:
 
-> python src/main.py
+> python main.py
 
 
 Ao executar a aplicação, alguns passos são necessários para configurar a aplicação para que ela execute corretamente:
