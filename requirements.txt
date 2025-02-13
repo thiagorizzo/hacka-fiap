@@ -7,3 +7,7 @@ PySide6
 gdown
 python-dotenv
 imagehash
+Pillow
+torch
+torchvision
+torchaudio
