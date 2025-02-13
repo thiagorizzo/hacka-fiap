@@ -91,8 +91,6 @@ A detecção de armas, facas e etc pode ser feita em diversas fontes como:
 
 - Webcam
 
-![Deteção em tempo real - Webcam](./img/select_camera.png)
-
 1. Clique em `Iniciar / Parar Câmera`
 2. Se necessário, libere as permissões
 3. A detecção será exibida como na imagem abaixo:
