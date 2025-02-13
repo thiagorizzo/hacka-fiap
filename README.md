@@ -45,17 +45,15 @@ Para executar a aplicação, siga os passos abaixo:
 
 > python src/main.py
 
-
 Ao executar a aplicação, alguns passos são necessários para configurar a aplicação para que ela execute corretamente:
 
 #### Download do modelo
 
 Por conta do tamanho do arquivo, o modelo treinado não está versionado nesse repositório. A aplicação, ao ser executada, irá verificar se o modelo já foi baixado. Caso não, o modelo será baixado automaticamente a partir do google drive. **Não é necessário nenhuma ação**. 
 
-O modelo será salvo em: `src/resources/model/model.pt
+O modelo será salvo em: `src/resources/model/model.pt`
 
 Caso exista a necessidade de baixar manualmente o modelo, ele está disponível nesse [Link](https://drive.google.com/uc?id=1-eiFluZMyC33URgVPVAJSlB1_sWaUQVD) 
-
 
 #### Configurar email
 
