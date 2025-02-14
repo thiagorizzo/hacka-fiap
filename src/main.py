@@ -10,7 +10,8 @@ injector = Injector(AppConfiguration.configure)
 # Caminho para salvar o modelo
 MODEL_DIR = "resources/model"
 MODEL_PATH = os.path.join(MODEL_DIR, "model.pt")
-MODEL_URL = "https://drive.google.com/uc?id=1-eiFluZMyC33URgVPVAJSlB1_sWaUQVD"
+MODEL_URL = "https://drive.google.com/uc?id=1-eiFluZMyC33URgVPVAJSlB1_sWaUQVD" # Heavy
+# MODEL_URL = "https://drive.google.com/uc?id=1-YH7Nig5QPyJj02BtvyLHlxMjZ5WXUUY" # Light
 
 if __name__ == '__main__':
     if not os.path.exists(MODEL_PATH):
