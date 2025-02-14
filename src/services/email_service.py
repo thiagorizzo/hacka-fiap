@@ -60,7 +60,6 @@ class EmailService:
             full_image_path = os.path.join(self.resources_images_path, image_file)
 
             if self.is_similar_image(full_image_path):
-
                 return  # Imagem é repetida, não envia o e-mail
 
             self.__send_email(full_image_path)

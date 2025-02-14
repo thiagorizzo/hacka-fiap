@@ -15,31 +15,14 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QProgressBar,
 )
+from PySide6.QtMultimedia import QMediaPlayer
+from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtCore import Qt, QThread, Signal, QSettings,QStringListModel
 from PySide6.QtGui import QFont, QImage, QPixmap
 from injector import inject
 from services.detection_service import DetectionService
 from services.email_service import EmailService
 from PySide6.QtCore import QStandardPaths
-
-
-# Thread para carregar o vídeo
-class VideoLoaderThread(QThread):
-    loading_progress_updated = Signal(int)  # Sinal para atualizar o progresso de carregamento
-    loading_finished = Signal(str)  # Sinal para indicar que o carregamento foi concluído
-
-    def __init__(self, video_path):
-        super().__init__()
-        self.video_path = video_path
-        
-
-    def run(self):
-        # Simula o carregamento do vídeo
-        for i in range(101):
-            self.msleep(50)  # Simula um atraso no carregamento
-            self.loading_progress_updated.emit(i)  # Atualiza a barra de progresso
-        self.loading_finished.emit(self.video_path)  # Emite o sinal de conclusão
-       
 
 
 # Thread para processar o vídeo
@@ -57,7 +40,6 @@ class VideoProcessorThread(QThread):
         # Processa o vídeo e atualiza o progresso
         total_frames = self.detection_service.get_total_frames(self.video_path)
         for frame_count in range(total_frames):
-            self.msleep(50)  # Simula o processamento de cada frame
             progress = int((frame_count + 1) / total_frames * 100)
             self.processing_progress_updated.emit(progress)
         self.processing_finished.emit()  # Emite o sinal de conclusão
@@ -71,7 +53,6 @@ class AppWindow(QMainWindow):
         self.detection_service = detection_service
         self.email_service = email_service
         self.is_camera_started = False
-        self.is_play = False
         self.path_video = ''
 
         # Configurações iniciais da janela
@@ -132,6 +113,16 @@ class AppWindow(QMainWindow):
         self.recipient_input.returnPressed.connect(self.add_to_list)
         #remove list
         self.list_view.doubleClicked.connect(self.remove_from_list)
+        self.__load_saved_settings()
+
+    # Carrega as configurações salvas
+    def __load_saved_settings(self):
+
+        #recipient = self.settings.value("recipient", "")
+        remember = self.settings.value("remember", True, type=bool)
+        emails = self.settings.value("emails", [])
+        self.model.setStringList(emails)  # Preenche o modelo com os e-mails salvos
+
 
     # Valida as configurações de e-mail
     def __validate_email_settings(self):
@@ -237,37 +228,16 @@ class AppWindow(QMainWindow):
             video_container_layout.setAlignment(Qt.AlignCenter)  # Centraliza o conteúdo
 
             # QLabel para exibir o vídeo
-            self.video_label = QLabel()
-            self.video_label.setAlignment(Qt.AlignCenter)  # Centraliza o conteúdo dentro do QLabel
-            self.video_label.setVisible(False)
+            self.video_player = QMediaPlayer()
+            self.video_label = QVideoWidget()
+            self.video_player.setVideoOutput(self.video_label)
             video_container_layout.addWidget(self.video_label)
 
             # Adiciona o container ao layout principal
             video_layout.addWidget(video_container)
 
-            # Barra de progresso para carregamento do vídeo
-            self.loading_progress_bar = QProgressBar()
-            self.loading_progress_bar.setVisible(False)
-            video_layout.addWidget(self.loading_progress_bar)
-
-            self.play_button = QPushButton("▶️ Play")
-            self.play_button.clicked.connect(self.__play_video)
-            self.play_button.setVisible(False)
-
-            self.pause_button = QPushButton("🔃 Reiniciar")
-            self.pause_button.clicked.connect(self.__reset_video)
-            self.pause_button.setVisible(False)
-
-            button_layout = QVBoxLayout()
-            button_layout.addWidget(self.play_button)
-            button_layout.addWidget(self.pause_button)
-            # Barra de progresso para processamento do vídeo
-            video_layout.addLayout(button_layout)
-            self.processing_progress_bar = QProgressBar()
-            self.processing_progress_bar.setVisible(False)
-            video_layout.addWidget(self.processing_progress_bar)
-
             video_layout.addStretch()
+
 
     # Aba de câmera
     def __add_camera_tab(self):
@@ -340,8 +310,6 @@ class AppWindow(QMainWindow):
 
     # Abre um vídeo
     def __open_video(self):
-        self.play_button.setVisible(False)
-        self.pause_button.setVisible(False)
         downloads_path = QStandardPaths.writableLocation(QStandardPaths.DownloadLocation)
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.ExistingFile)
@@ -353,30 +321,13 @@ class AppWindow(QMainWindow):
             if len(file_paths) > 0:
                 video_path = file_paths[0]
                 print(f"Selecionado arquivo de vídeo: {video_path}")
-
-                # Mostra a barra de progresso de carregamento
-                self.loading_progress_bar.setVisible(True)
-                self.loading_progress_bar.setValue(0)
                 # Cria e inicia a thread de carregamento
-                self.video_loader_thread = VideoLoaderThread(video_path)
                 self.path_video = video_path
-                self.video_loader_thread.loading_progress_updated.connect(self.__update_loading_progress)
-                self.video_loader_thread.loading_finished.connect(self.__start_video_processing)
-                self.video_loader_thread.start()
+                self.__start_video_processing()
 
-    # Atualiza o progresso de carregamento
-    def __update_loading_progress(self, value):
-        self.loading_progress_bar.setValue(value)
 
     # Inicia o processamento do vídeo
-    def __start_video_processing(self, video_path):
-        self.loading_progress_bar.setVisible(False)
-        self.processing_progress_bar.setVisible(True)
-        self.play_button.setVisible(True)
-        self.pause_button.setVisible(True)
-
-        self.processing_progress_bar.setValue(0)
-
+    def __start_video_processing(self):
         if hasattr(self.detection_service, 'camera_frame_size'):
             width, height = self.detection_service.camera_frame_size
             self.video_label.setFixedSize(width, height)
@@ -384,24 +335,9 @@ class AppWindow(QMainWindow):
             # Tamanho padrão caso o frame da câmera não esteja disponível
             self.video_label.setFixedSize(640, 480)
 
-        # Garante que o vídeo seja redimensionado corretamente
-        self.video_label.setScaledContents(True)
-
-
         self.video_label.setVisible(True)
+        self.detection_service.detect_in_video(self.path_video, self.video_player)
 
-
-
-        # # Conecta os sinais do DetectionService
-        # self.detection_service.video_progress_updated.connect(self.__update_processing_progress)
-        # self.detection_service.frame_processed.connect(self.__update_video_frame)
-
-        # # Inicia o processamento do vídeo
-        # self.detection_service.detect_in_video(video_path)
-
-    # Atualiza o progresso de processamento
-    def __update_processing_progress(self, value):
-        self.processing_progress_bar.setValue(value)
 
     # Atualiza o frame do vídeo
     def __update_video_frame(self, q_img):
@@ -409,7 +345,6 @@ class AppWindow(QMainWindow):
 
     # Finaliza o processamento do vídeo
     def __finish_video_processing(self):
-        self.processing_progress_bar.setVisible(False)
         QMessageBox.information(self, "Concluído", "Processamento do vídeo finalizado!")
 
     # Inicia/para a câmera
@@ -432,23 +367,5 @@ class AppWindow(QMainWindow):
         self.email_config_widget.setVisible(True)
         self.tabs.setVisible(False)
         #self.close()
-
-
-    def __play_video(self):
-        if not self.is_play:
-            self.detection_service.video_progress_updated.connect(self.__update_processing_progress)
-            self.detection_service.frame_processed.connect(self.__update_video_frame)
-            self.detection_service.detect_in_video(self.path_video)  # Atualiza o vídeo a cada 30ms
-            self.is_play = True
-
-
-
-        # Conecta os sinais do DetectionService
-
-
-    def __reset_video(self):
-        self.detection_service.video_progress_updated.connect(self.__update_processing_progress)
-        self.detection_service.frame_processed.connect(self.__update_video_frame)
-        self.detection_service.detect_in_video(self.path_video)  # Atualiza o vídeo a cada 30ms
 
         

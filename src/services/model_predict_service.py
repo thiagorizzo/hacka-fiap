@@ -1,23 +1,33 @@
+import os
+from datetime import datetime
 import cv2
 from ultralytics import YOLO
 import torch
+from file_system_service import FileSystemService, DEFAULT_RESOURCES_PATH
+
 
 class ModelPredictService:
 
     def __init__(self):
-        self.model = YOLO("src/resources/model/model.pt")
+        self.model = YOLO("resources/model/model.pt")
+        self.fs_service = FileSystemService()
 
-    def predict(self, frame, ):
-       
-        # if torch.cuda.is_available():
-        #     print(f"CUDA está disponível! Usando GPU: {torch.cuda.get_device_name(0)}")
-        # else:
-        #     print("CUDA não está disponível.")   
-        # Run inference on 'bus.jpg' with arguments
-        # results = self.model(frame, mgsz=320, conf=0.17, half=True, iou=0.7, device=0)
-        #1280 640
+    def predict(self, frame, sync = True, source = None):
+        size = 640
+        conf = 0.1 if source == "video" else 0.4
+        device = 0 if torch.cuda.is_available() else "cpu"
+        classes = [1,2,3]
+        if sync:
+            results = self.model.predict(frame, imgsz=size, conf=conf, device=device, classes=classes)
+        else:
+            path = self.fs_service.copy_file(frame)
+            prediction = str(datetime.timestamp(datetime.now()))
+            results = self.model.predict(path, imgsz=size, conf=conf, name=prediction, project=DEFAULT_RESOURCES_PATH, save=True, stream=True, device=device, classes=classes)
+            [r for r in results]
+            prediction_folder_path = os.path.join(DEFAULT_RESOURCES_PATH, prediction)
+            [prediction_file] = os.listdir(prediction_folder_path)
+            return os.path.join(prediction_folder_path, prediction_file)
 
-        results = self.model.predict(frame, imgsz=640, conf=0.08,  device=0 if torch.cuda.is_available() else "cpu",  )
         detected_objects_frames = []
 
         for result in results:
