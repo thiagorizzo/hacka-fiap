@@ -3,7 +3,7 @@ from datetime import datetime
 import cv2
 from ultralytics import YOLO
 import torch
-from file_system_service import FileSystemService, DEFAULT_RESOURCES_PATH
+from services.file_system_service import FileSystemService, DEFAULT_RESOURCES_PATH
 
 
 class ModelPredictService:

@@ -22,7 +22,7 @@ class EmailService:
         self.email_password = os.getenv("SENDER_PASSWORD")
         self.smtp_server = 'smtp.gmail.com'
         self.smtp_port = 587
-        self.resources_images_path = 'src/resources/images'
+        self.resources_images_path = 'resources/images'
 
     def __send_email(self, image_path: str):
         email_server = smtplib.SMTP(self.smtp_server, self.smtp_port)

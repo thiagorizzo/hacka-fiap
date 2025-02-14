@@ -8,7 +8,7 @@ from PySide6.QtGui import QImage, QPixmap
 from datetime import datetime
 import os
 import threading
-from file_system_service import DEFAULT_RESOURCES_PATH
+from services.file_system_service import DEFAULT_RESOURCES_PATH
 
 
 class DetectionService(QObject):
@@ -35,7 +35,7 @@ class DetectionService(QObject):
         if len(detected_objects_frames) > 0:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             file_name = f"{timestamp}.jpg"
-            image_path = os.path.join('src/resources/images', f"{timestamp}.jpg")
+            image_path = os.path.join('resources/images', f"{timestamp}.jpg")
 
             lock = threading.Lock()
 
